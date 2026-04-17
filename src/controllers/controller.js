@@ -1,5 +1,4 @@
 const pool = require('../config/config')
-
 const { generate } = require('../utils/util')
 
 const getUrl = async ( req,res )=>
@@ -47,9 +46,9 @@ const getOriginalUrl = async (req,res)=>
 
         const [ upodate ] = await pool.execute( "update shorten_url set accessCount=? where short_url=?" , [ count , url ] )
 
-        if( result.affectedRows === 0 )
+        if( result.length === 0 )
         {
-            return res.status(400).json({
+            return res.status(404).json({
                 ok:true,
                 message:"Not found!"
             })
@@ -200,10 +199,52 @@ const remove = async (req,res)=>
     }
 }
 
+
+async function getStats( req,res)
+{
+    try
+    {
+        const { url } = req.query;
+
+        if( !url )
+        {
+            return res.status(400).json({
+                ok:false,
+                message:"url is required!"
+            })
+        }
+
+        const query = "select id,original_url,short_url,accessCount,updatedAt from shorten_url where short_url=?";
+        
+        const [ result ] = await pool.execute( query ,[ url ] );
+
+        if( result.length === 0 )
+        {
+            return res.status(404).json({
+                ok:false,
+                message:"url not found!"
+            })
+        }
+
+        return res.status(200).json({
+            ok:true,
+            data:result
+        })
+    }
+    catch(err)
+    {
+        return res.status(500).json({
+            ok:false,
+            message:err.message
+        })
+    }
+}
+
 module.exports = {
     getUrl,
     postUrl,
     getOriginalUrl,
     update,
-    remove
+    remove,
+    getStats
 }
